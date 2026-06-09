@@ -82,7 +82,7 @@ The `SettingsManager` patch checks trust.json on each reload when `projectTruste
 ### Option 1: Install via pi package (Recommended)
 
 ```bash
-pi install https://github.com/monotykamary/pi-trust-defer@main
+pi install pi-trust-defer
 ```
 
 Or add to your `settings.json`:
@@ -90,9 +90,15 @@ Or add to your `settings.json`:
 ```json
 {
   "packages": [
-    "https://github.com/monotykamary/pi-trust-defer@main"
+    "pi-trust-defer"
   ]
 }
+```
+
+Or install from GitHub:
+
+```bash
+pi install https://github.com/monotykamary/pi-trust-defer
 ```
 
 ### Option 2: Global Installation
