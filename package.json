@@ -1,6 +1,6 @@
 {
   "name": "pi-trust-defer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Skip the startup trust prompt in pi — auto-decline project trust so you're immediately interactive, then /trustnow to save + reload",
   "type": "module",
   "author": "Tom X Nguyen",
