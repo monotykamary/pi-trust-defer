@@ -86,38 +86,3 @@ export function makeProjectTrustContext(
     ...overrides,
   };
 }
-
-export interface MockCommandContext {
-  cwd: string;
-  hasUI: boolean;
-  ui: {
-    notify: ReturnType<typeof vi.fn>;
-    confirm: ReturnType<typeof vi.fn>;
-    select: ReturnType<typeof vi.fn>;
-    input: ReturnType<typeof vi.fn>;
-  };
-  reload: ReturnType<typeof vi.fn>;
-  sessionManager: any;
-  isIdle: () => boolean;
-}
-
-export function makeCommandContext(
-  overrides: Partial<MockCommandContext> = {},
-): MockCommandContext {
-  return {
-    cwd: "/fake/project",
-    hasUI: true,
-    ui: {
-      notify: vi.fn(),
-      confirm: vi.fn(),
-      select: vi.fn(),
-      input: vi.fn(),
-    },
-    reload: vi.fn().mockResolvedValue(undefined),
-    sessionManager: {},
-    isIdle: () => true,
-    ...overrides,
-  };
-}
-
-

@@ -5,10 +5,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { createMockPi, makeProjectTrustContext } from "../helpers/mock-pi.js";
 
-// Mock @earendil-works/pi-coding-agent before loading the extension
 vi.mock("@earendil-works/pi-coding-agent", () => ({
   getAgentDir: () => "/fake/.pi/agent",
-  hasProjectTrustInputs: vi.fn().mockReturnValue(true),
   ProjectTrustStore: vi.fn().mockImplementation(() => ({
     get: vi.fn().mockReturnValue(null),
     set: vi.fn(),
@@ -24,7 +22,6 @@ async function loadExtension() {
   vi.resetModules();
   vi.doMock("@earendil-works/pi-coding-agent", () => ({
     getAgentDir: () => "/fake/.pi/agent",
-    hasProjectTrustInputs: vi.fn().mockReturnValue(true),
     ProjectTrustStore: vi.fn().mockImplementation(() => ({
       get: vi.fn().mockReturnValue(null),
       set: vi.fn(),
@@ -54,7 +51,7 @@ describe("project_trust handler", () => {
     expect(result).toEqual({ trusted: "no" });
   });
 
-  it("shows a warning notification with /trustnow hint when hasUI is true", async () => {
+  it("shows a warning notification with /trust and /reload hints when hasUI is true", async () => {
     const factory = await loadExtension();
     const pi = createMockPi();
     factory(pi as any);
@@ -64,7 +61,11 @@ describe("project_trust handler", () => {
     await handler!({ type: "project_trust", cwd: "/fake/project" }, ctx);
 
     expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining("/trustnow"),
+      expect.stringContaining("/trust"),
+      "warning",
+    );
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("/reload"),
       "warning",
     );
   });

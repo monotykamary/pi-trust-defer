@@ -27,7 +27,6 @@
   ],
   "files": [
     "*.ts",
-    "src/",
     "README.md"
   ],
   "scripts": {

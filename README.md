@@ -4,7 +4,7 @@
 
 **Skip the startup trust prompt in [pi](https://github.com/earendil-works/pi-coding-agent)**
 
-_Auto-decline project trust at startup so you're immediately interactive. Use `/trustnow` when you're ready._
+_Auto-decline project trust at startup so you're immediately interactive. Use `/trust` + `/reload` when you're ready._
 
 [![pi extension](https://img.shields.io/badge/pi-extension-blueviolet)](https://github.com/earendil-works/pi-coding-agent)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
@@ -35,19 +35,22 @@ You're blocked until you choose. Every. Single. Time. Even in projects you've ne
 
 ## The Solution
 
-**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. You get an untrusted notification in the chat area and a discoverable `/trustnow` command that saves the decision **and reloads** — no restart needed.
+**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. You get an untrusted notification in the chat area, and the existing built-in `/trust` + `/reload` applies the decision without a restart.
 
 ```
 ⚠ This project is not trusted. Project instructions (AGENTS.md/CLAUDE.md),
-  .pi resources, and project packages are ignored. Use /trustnow to trust and reload.
-```
+  .pi resources, and project packages are ignored. Use /trust to save a
+  trust decision, then restart pi.         ← core notification
 
-When you're ready to trust:
+⚠ Project not trusted — instructions, .pi resources, and packages
+  ignored. Use /trust to save, then /reload to apply.
+                                            ← pi-trust-defer notification
+```
 
 | Step | Before | After |
 |------|--------|-------|
 | Startup | **Blocked** by trust prompt | **Immediate** — no prompt |
-| Trust later | `/trust` → "restart pi" | `/trustnow` → saves + reloads |
+| Trust later | `/trust` → "restart pi" | `/trust` → `/reload` — no restart |
 | Untrusted session | Can't use project instructions | Same behavior, just faster to get there |
 
 ---
@@ -61,15 +64,16 @@ pi starts
   → pi is immediately interactive (no startup selector)
   → Untrusted notification shown in chat
 
-User types "/trustnow"
-  → Confirmation dialog
+User types "/trust" (builtin)
   → Saves "trusted: true" to ~/.pi/agent/trust.json
+
+User types "/reload" (builtin)
   → SettingsManager.prototype.reload is patched to check trust.json
-  → ctx.reload() picks up the new trust state
-  → Project-local resources load immediately — no restart
+  → Detects projectTrusted=false but trust.json=true → flips flag
+  → Project-local resources load — no restart
 ```
 
-The `SettingsManager` patch is necessary because `/reload` preserves the `projectTrusted` flag from the initial session creation. Without it, the reload would keep `projectTrusted=false` even after `trust.json` says `true`. The patch simply checks the trust store before each settings reload.
+The `SettingsManager` patch checks trust.json on each reload when `projectTrusted` is `false`. This is fine because `/reload` is user-initiated and infrequent — not a hot loop — so the single `proper-lockfile` acquisition per reload is negligible.
 
 ---
 
@@ -112,23 +116,13 @@ pi -e ./trust-defer.ts
 
 ## Usage
 
-Once loaded, the extension works automatically:
+Once loaded, the extension works automatically — no new commands to learn. Just use the built-in `/trust` and `/reload`:
 
-| Command | What it does |
-|---------|-------------|
-| (automatic) | Auto-declines project trust at startup |
-| `/trustnow` | Trust this project + reload immediately |
-
-### What happens when I run `/trustnow`?
-
-1. A confirmation dialog appears asking you to trust the project
-2. If confirmed, the trust decision is saved to `~/.pi/agent/trust.json`
-3. pi reloads automatically — project instructions, `.pi` resources, and packages load
-4. No restart required
-
-### Can I still use the built-in `/trust`?
-
-Yes — `/trust` still works and saves to the same trust store. But `/trust` requires a restart, while `/trustnow` reloads automatically.
+| Step | What you type |
+|-------|--------------|
+| 1 | (pi starts immediately — no trust prompt) |
+| 2 | `/trust` — save trust decision |
+| 3 | `/reload` — apply without restart |
 
 ### What about non-interactive modes?
 
@@ -143,12 +137,11 @@ Pass `--approve` / `-a` to trust the project in non-interactive modes, just like
 | Component | Purpose |
 |-----------|---------|
 | `project_trust` handler | Intercepts the trust event, returns `{ trusted: "no" }` |
-| `SettingsManager.prototype.reload` patch | Checks trust.json before settings reload, flips `projectTrusted` if saved decision differs |
-| `/trustnow` command | Saves trust + calls `ctx.reload()` |
+| `SettingsManager.prototype.reload` patch | On reload, if `projectTrusted` is `false` but trust.json says `true`, flips the flag |
 
 The extension uses the `project_trust` event — the same mechanism that enterprise extensions use to control trust decisions automatically. This is a supported extension API, not a hack.
 
-The `SettingsManager` prototype patch is the only "internal" touch. It's needed because the built-in `/reload` preserves `projectTrusted=false` from the initial session, and the extension API doesn't expose a way to flip it. The patch is minimal: before each `reload()`, if `isProjectTrusted()` is `false` and the trust store says `true`, call `setProjectTrusted(true)`.
+The `SettingsManager` prototype patch is the only "internal" touch. It's needed because the built-in `/reload` preserves `projectTrusted=false` from the initial session, and the extension API doesn't expose a way to flip it. The patch is minimal: on each `reload()`, if `isProjectTrusted()` is `false` and the trust store says `true`, call `setProjectTrusted(true)`. Since `/reload` is user-initiated and infrequent, the trust store read is fine — a single `proper-lockfile` acquisition, not a hot loop.
 
 ---
 
