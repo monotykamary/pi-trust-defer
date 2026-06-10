@@ -37,13 +37,12 @@ async function loadExtension(): Promise<(pi: any) => void> {
 }
 
 describe("extension registration", () => {
-  it("registers project_trust and session_start handlers, no commands", async () => {
+  it("registers project_trust handler, no commands", async () => {
     const factory = await loadExtension();
     const pi = createMockPi();
     factory(pi as any);
 
     expect(pi._eventHandlers.get("project_trust")?.[0]).toBeDefined();
-    expect(pi._eventHandlers.get("session_start")?.[0]).toBeDefined();
 
     // No custom commands — user uses built-in /trust + /reload
     expect(pi._registeredCommands).toHaveLength(0);

@@ -35,23 +35,12 @@ You're blocked until you choose. Every. Single. Time. Even in projects you've ne
 
 ## The Solution
 
-**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. You get an untrusted notification on session start, and the existing built-in `/trust` + `/reload` applies the decision without a restart.
-
-```
-⚠ This project is not trusted. Project instructions (AGENTS.md/CLAUDE.md),
-  .pi resources, and project packages are ignored. Use /trust to save a
-  trust decision, then restart pi.         ← core notification
-
-⚠ Project not trusted — instructions, .pi resources, and packages
-  ignored. Use /trust to save, then /reload to apply.
-                                            ← pi-trust-defer notification
-```
+**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. Pi's built-in untrusted notification still appears, and the existing `/trust` + `/reload` applies the decision without a restart.
 
 | Step | Before | After |
 |------|--------|-------|
 | Startup | **Blocked** by trust prompt | **Immediate** — no prompt |
 | Trust later | `/trust` → "restart pi" | `/trust` → `/reload` — no restart |
-| Untrusted session | Can't use project instructions | Same behavior, just faster to get there |
 
 ---
 
@@ -62,8 +51,6 @@ pi starts
   → project_trust event fires
   → Extension returns { trusted: "no" }
   → pi is immediately interactive (no startup selector)
-  → session_start event fires
-  → ctx.isProjectTrusted() is false → untrusted notification shown
 
 User types "/trust" (builtin)
   → Saves "trusted: true" to ~/.pi/agent/trust.json
@@ -71,11 +58,8 @@ User types "/trust" (builtin)
 User types "/reload" (builtin)
   → SettingsManager.prototype.reload is patched to check trust.json
   → Detects projectTrusted=false but trust.json=true → flips flag
-  → session_start fires again → ctx.isProjectTrusted() is true → no notification
   → Project-local resources load — no restart
 ```
-
-The `session_start` handler uses `ctx.isProjectTrusted()` (added in pi 0.79.1) to check the effective trust state on every session start — including after `/reload`. This means the untrusted notification is shown as long as the project is not trusted, and stops appearing as soon as `/trust` + `/reload` flips the state.
 
 The `SettingsManager` patch checks trust.json on each reload when `projectTrusted` is `false`. This is fine because `/reload` is user-initiated and infrequent — the single `proper-lockfile` acquisition per reload is negligible.
 
@@ -92,9 +76,8 @@ Pi 0.79.1 added the `defaultProjectTrust` setting (`"ask"` / `"always"` / `"neve
 | `/trust` overrides per-project | ✗ — the global "never" still applies | ✓ — `/trust` saves per-project "yes" |
 | No startup prompt | ✓ | ✓ |
 | `/reload` picks up `/trust` | ✗ — need manual restart | ✓ — patched reload re-checks trust.json |
-| Reminds you on each session | No — silently declines | Yes — notification on `session_start` |
 
-`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project and don't need a reminder. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
+`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
 
 ---
 
@@ -153,7 +136,7 @@ Once loaded, the extension works automatically — no new commands to learn. Jus
 
 ### What about non-interactive modes?
 
-In `--mode json`, `--mode rpc`, and `-p` modes, the `project_trust` event fires but the extension has no UI. It returns `{ trusted: "no" }` without showing a notification — consistent with the existing non-interactive behavior of declining trust by default.
+In `--mode json`, `--mode rpc`, and `-p` modes, the `project_trust` event fires but the extension has no UI. It returns `{ trusted: "no" }` — consistent with the existing non-interactive behavior of declining trust by default.
 
 Pass `--approve` / `-a` to trust the project in non-interactive modes, just like without the extension.
 
@@ -164,7 +147,6 @@ Pass `--approve` / `-a` to trust the project in non-interactive modes, just like
 | Component | Purpose |
 |-----------|---------|
 | `project_trust` handler | Intercepts the trust event, returns `{ trusted: "no" }` |
-| `session_start` handler | Checks `ctx.isProjectTrusted()` and shows an untrusted notification with /trust + /reload hints |
 | `SettingsManager.prototype.reload` patch | On reload, if `projectTrusted` is `false` but trust.json says `true`, flips the flag |
 
 The extension uses the `project_trust` event and `ctx.isProjectTrusted()` — supported extension APIs, not hacks.
