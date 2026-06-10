@@ -3,8 +3,8 @@
  *
  * Instead of blocking the startup flow with a trust selector, this extension
  * auto-declines project trust so pi is always immediately interactive. An
- * untrusted notification is shown, and the built-in /trust + /reload picks up
- * the new trust state without a full restart.
+ * untrusted notification is shown on session_start, and the built-in /trust
+ * + /reload picks up the new trust state without a full restart.
  *
  * Usage:
  *   mkdir -p ~/.pi/agent/extensions
@@ -16,9 +16,18 @@
  * How it works:
  *   1. On the project_trust event, returns { trusted: "no" } — this
  *      suppresses the built-in startup trust prompt and pi starts immediately
- *   2. On session_start, shows a notification about /trust + /reload
+ *   2. On session_start, checks ctx.isProjectTrusted() and shows a
+ *      notification about /trust + /reload when the project is not trusted
  *   3. SettingsManager.prototype.reload is patched to check trust.json — so
  *      /reload after /trust picks up the new decision without restarting
+ *
+ * Relation to defaultProjectTrust:
+ *   Pi's built-in defaultProjectTrust: "never" also auto-declines, but it
+ *   persists a global "never" decision — /trust won't override it per-project.
+ *   This extension returns { trusted: "no" } without remembering, so the
+ *   per-session decline leaves no trace. /trust saves a per-project "yes" to
+ *   trust.json, and /reload picks it up because the SettingsManager patch
+ *   re-checks the store.
  */
 
 import type { ExtensionAPI, ProjectTrustEventResult } from "@earendil-works/pi-coding-agent";
@@ -55,6 +64,9 @@ SettingsManager.prototype.reload = async function (this: SettingsManager) {
   return origReload.call(this);
 };
 
+const UNTRUSTED_NOTICE =
+  "Project not trusted — instructions, .pi resources, and packages ignored. Use /trust to save, then /reload to apply.";
+
 export default function (pi: ExtensionAPI) {
   pi.on("project_trust", async (event, ctx): Promise<ProjectTrustEventResult> => {
     // Capture the cwd so the SettingsManager patch can use it
@@ -62,12 +74,12 @@ export default function (pi: ExtensionAPI) {
 
     // Auto-decline trust so pi starts immediately, without persisting a
     // "never trust" decision. The user can /trust + /reload later.
-    if (ctx.hasUI) {
-      ctx.ui.notify(
-        "Project not trusted — instructions, .pi resources, and packages ignored. Use /trust to save, then /reload to apply.",
-        "warning",
-      );
-    }
     return { trusted: "no" };
+  });
+
+  pi.on("session_start", async (_event, ctx) => {
+    if (!ctx.isProjectTrusted() && ctx.hasUI) {
+      ctx.ui.notify(UNTRUSTED_NOTICE, "warning");
+    }
   });
 }

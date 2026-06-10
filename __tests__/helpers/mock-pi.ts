@@ -86,3 +86,34 @@ export function makeProjectTrustContext(
     ...overrides,
   };
 }
+
+export interface MockSessionStartContext {
+  cwd: string;
+  mode: string;
+  hasUI: boolean;
+  isProjectTrusted: () => boolean;
+  ui: {
+    notify: ReturnType<typeof vi.fn>;
+    select: ReturnType<typeof vi.fn>;
+    confirm: ReturnType<typeof vi.fn>;
+    input: ReturnType<typeof vi.fn>;
+  };
+}
+
+export function makeSessionStartContext(
+  overrides: Partial<MockSessionStartContext> = {},
+): MockSessionStartContext {
+  return {
+    cwd: "/fake/project",
+    mode: "tui",
+    hasUI: true,
+    isProjectTrusted: () => false,
+    ui: {
+      notify: vi.fn(),
+      select: vi.fn(),
+      confirm: vi.fn(),
+      input: vi.fn(),
+    },
+    ...overrides,
+  };
+}

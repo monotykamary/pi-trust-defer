@@ -35,7 +35,7 @@ You're blocked until you choose. Every. Single. Time. Even in projects you've ne
 
 ## The Solution
 
-**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. You get an untrusted notification in the chat area, and the existing built-in `/trust` + `/reload` applies the decision without a restart.
+**pi-trust-defer** intercepts the `project_trust` event and auto-declines, so pi starts immediately. You get an untrusted notification on session start, and the existing built-in `/trust` + `/reload` applies the decision without a restart.
 
 ```
 ⚠ This project is not trusted. Project instructions (AGENTS.md/CLAUDE.md),
@@ -62,7 +62,8 @@ pi starts
   → project_trust event fires
   → Extension returns { trusted: "no" }
   → pi is immediately interactive (no startup selector)
-  → Untrusted notification shown in chat
+  → session_start event fires
+  → ctx.isProjectTrusted() is false → untrusted notification shown
 
 User types "/trust" (builtin)
   → Saves "trusted: true" to ~/.pi/agent/trust.json
@@ -70,10 +71,30 @@ User types "/trust" (builtin)
 User types "/reload" (builtin)
   → SettingsManager.prototype.reload is patched to check trust.json
   → Detects projectTrusted=false but trust.json=true → flips flag
+  → session_start fires again → ctx.isProjectTrusted() is true → no notification
   → Project-local resources load — no restart
 ```
 
-The `SettingsManager` patch checks trust.json on each reload when `projectTrusted` is `false`. This is fine because `/reload` is user-initiated and infrequent — not a hot loop — so the single `proper-lockfile` acquisition per reload is negligible.
+The `session_start` handler uses `ctx.isProjectTrusted()` (added in pi 0.79.1) to check the effective trust state on every session start — including after `/reload`. This means the untrusted notification is shown as long as the project is not trusted, and stops appearing as soon as `/trust` + `/reload` flips the state.
+
+The `SettingsManager` patch checks trust.json on each reload when `projectTrusted` is `false`. This is fine because `/reload` is user-initiated and infrequent — the single `proper-lockfile` acquisition per reload is negligible.
+
+---
+
+## Why not `defaultProjectTrust: "never"`?
+
+Pi 0.79.1 added the `defaultProjectTrust` setting (`"ask"` / `"always"` / `"never"`), which has partial overlap with this extension. Here's the difference:
+
+| | `defaultProjectTrust: "never"` | pi-trust-defer |
+|---|---|---|
+| Auto-declines trust | ✓ | ✓ |
+| Per-session only | ✗ — persists a global "never" fallback | ✓ — no persisted decision |
+| `/trust` overrides per-project | ✗ — the global "never" still applies | ✓ — `/trust` saves per-project "yes" |
+| No startup prompt | ✓ | ✓ |
+| `/reload` picks up `/trust` | ✗ — need manual restart | ✓ — patched reload re-checks trust.json |
+| Reminds you on each session | No — silently declines | Yes — notification on `session_start` |
+
+`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project and don't need a reminder. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
 
 ---
 
@@ -143,9 +164,10 @@ Pass `--approve` / `-a` to trust the project in non-interactive modes, just like
 | Component | Purpose |
 |-----------|---------|
 | `project_trust` handler | Intercepts the trust event, returns `{ trusted: "no" }` |
+| `session_start` handler | Checks `ctx.isProjectTrusted()` and shows an untrusted notification with /trust + /reload hints |
 | `SettingsManager.prototype.reload` patch | On reload, if `projectTrusted` is `false` but trust.json says `true`, flips the flag |
 
-The extension uses the `project_trust` event — the same mechanism that enterprise extensions use to control trust decisions automatically. This is a supported extension API, not a hack.
+The extension uses the `project_trust` event and `ctx.isProjectTrusted()` — supported extension APIs, not hacks.
 
 The `SettingsManager` prototype patch is the only "internal" touch. It's needed because the built-in `/reload` preserves `projectTrusted=false` from the initial session, and the extension API doesn't expose a way to flip it. The patch is minimal: on each `reload()`, if `isProjectTrusted()` is `false` and the trust store says `true`, call `setProjectTrusted(true)`. Since `/reload` is user-initiated and infrequent, the trust store read is fine — a single `proper-lockfile` acquisition, not a hot loop.
 
@@ -155,9 +177,10 @@ The `SettingsManager` prototype patch is the only "internal" touch. It's needed 
 
 ```bash
 npm install          # install dev dependencies
-npm test            # run tests
 npm run typecheck   # type check
 npm run lint:dead   # check for unused exports
+npm test            # run tests
+npm test:coverage   # run tests with coverage
 ```
 
 ## License
