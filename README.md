@@ -86,7 +86,7 @@ Pi 0.79.1 added the `defaultProjectTrust` setting (`"ask"` / `"always"` / `"neve
 ### Option 1: Install via pi package (Recommended)
 
 ```bash
-pi install pi-trust-defer
+pi install npm:pi-trust-defer
 ```
 
 Or add to your `settings.json`:
@@ -94,7 +94,7 @@ Or add to your `settings.json`:
 ```json
 {
   "packages": [
-    "pi-trust-defer"
+    "npm:pi-trust-defer"
   ]
 }
 ```
