@@ -72,12 +72,12 @@ Pi 0.79.1 added the `defaultProjectTrust` setting (`"ask"` / `"always"` / `"neve
 | | `defaultProjectTrust: "never"` | pi-trust-defer |
 |---|---|---|
 | Auto-declines trust | ✓ | ✓ |
-| Per-session only | ✗ — persists a global "never" fallback | ✓ — no persisted decision |
-| `/trust` overrides per-project | ✗ — the global "never" still applies | ✓ — `/trust` saves per-project "yes" |
-| No startup prompt | ✓ | ✓ |
+| Per-session only | N/A — it's a fallback, not a persisted decision | ✓ — no persisted decision |
+| `/trust` overrides per-project | ✓ — `/trust` saves per-project, overriding the fallback | ✓ — `/trust` saves per-project "yes" |
+| No startup prompt | ✗ — still shows a prompt ("never" is the default but you must confirm) | ✓ — fully skipped |
 | `/reload` picks up `/trust` | ✗ — need manual restart | ✓ — patched reload re-checks trust.json |
 
-`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
+`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project and don't mind pressing Enter on the trust prompt. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
 
 ---
 

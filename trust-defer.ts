@@ -19,12 +19,16 @@
  *      /reload after /trust picks up the new decision without restarting
  *
  * Relation to defaultProjectTrust:
- *   Pi's built-in defaultProjectTrust: "never" also auto-declines, but it
- *   persists a global "never" decision — /trust won't override it per-project.
- *   This extension returns { trusted: "no" } without remembering, so the
- *   per-session decline leaves no trace. /trust saves a per-project "yes" to
- *   trust.json, and /reload picks it up because the SettingsManager patch
- *   re-checks the store.
+ *   Pi's built-in defaultProjectTrust: "never" is a fallback for unresolved
+ *   trust decisions — it does NOT persist a "never" decision. /trust saves a
+ *   per-project decision to trust.json that overrides it.
+ *   However, with defaultProjectTrust: "never", pi still shows the trust
+ *   prompt when there are project resources (it just defaults to declining).
+ *   This extension goes further — the project_trust handler returns
+ *   { trusted: "no" } immediately, fully suppressing the prompt so pi starts
+ *   instantly. The per-session decline leaves no trace in trust.json, so
+ *   /trust + /reload still works. The SettingsManager patch ensures the
+ *   reload picks up the new trust.json decision.
  */
 
 import type { ExtensionAPI, ProjectTrustEventResult } from "@earendil-works/pi-coding-agent";
