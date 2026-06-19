@@ -6,11 +6,12 @@
  * built-in /trust + /reload picks up the new trust state without a full restart.
  *
  * Usage:
+ *   pi -e ./trust-defer.ts
+ *
+ * Or copy into your agent extensions dir (default ~/.pi/agent/extensions,
+ *   override the whole dir with PI_CODING_AGENT_DIR):
  *   mkdir -p ~/.pi/agent/extensions
  *   cp trust-defer.ts ~/.pi/agent/extensions/
- *
- * Or:
- *   pi -e ./trust-defer.ts
  *
  * How it works:
  *   1. On the project_trust event, returns { trusted: "no" } — this
