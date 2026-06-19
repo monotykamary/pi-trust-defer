@@ -72,12 +72,16 @@ Pi 0.79.1 added the `defaultProjectTrust` setting (`"ask"` / `"always"` / `"neve
 | | `defaultProjectTrust: "never"` | pi-trust-defer |
 |---|---|---|
 | Auto-declines trust | ✓ | ✓ |
-| Per-session only | N/A — it's a fallback, not a persisted decision | ✓ — no persisted decision |
+| No startup prompt | ✓ — `"never"` returns immediately, no selector shown | ✓ — `project_trust` returns `{ trusted: "no" }` |
+| Per-session only | ✗ — it's a global fallback, not a per-session decision | ✓ — declines in-memory, no persisted decision |
 | `/trust` overrides per-project | ✓ — `/trust` saves per-project, overriding the fallback | ✓ — `/trust` saves per-project "yes" |
-| No startup prompt | ✗ — still shows a prompt ("never" is the default but you must confirm) | ✓ — fully skipped |
-| `/reload` picks up `/trust` | ✗ — need manual restart | ✓ — patched reload re-checks trust.json |
+| `/reload` picks up `/trust` | ✗ — `reload()` keeps the initial `projectTrusted` flag; needs a restart | ✓ — patched `reload()` re-checks trust.json |
 
-`defaultProjectTrust: "never"` is a reasonable choice if you never want project instructions in any project and don't mind pressing Enter on the trust prompt. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them, without being blocked at startup.
+Applied per-project vs. globally is the first real difference: `defaultProjectTrust` is a single global setting, so `"never"` auto-declines trust in *every* project. pi-trust-defer is loaded as an extension, leaving the global default untouched and declining per-session without writing a decision to trust.json — so `/trust` + `/reload` still works the way you'd expect.
+
+The bigger difference is `/reload`. Pi's `SettingsManager.prototype.reload()` preserves `projectTrusted` from the initial session and never re-reads the trust store, so even after `/trust` writes a `true` decision, `/reload` will not load project-local resources — you have to restart pi. This extension patches `reload()` to re-check trust.json, so `/trust` → `/reload` applies without a restart.
+
+`defaultProjectTrust: "never"` is a good fit if you want to globally auto-decline and don't mind restarting after `/trust`. pi-trust-defer is for the common case where you *sometimes* want to trust projects after verifying them and want `/trust` + `/reload` to work in place.
 
 ---
 
