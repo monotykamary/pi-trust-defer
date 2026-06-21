@@ -1,7 +1,7 @@
 {
   "name": "pi-trust-defer",
   "version": "1.2.2",
-  "description": "Skip the startup trust prompt in pi \u2014 auto-decline project trust so you're immediately interactive, then /trust + /reload when ready",
+  "description": "Skip the startup trust prompt in pi — auto-decline project trust so you're immediately interactive, then /trust + /reload when ready",
   "type": "module",
   "author": "Tom X Nguyen",
   "license": "MIT",
@@ -51,5 +51,6 @@
   },
   "overrides": {
     "brace-expansion": "5.0.6"
-  }
+  },
+  "packageManager": "pnpm@11.6.0"
 }
