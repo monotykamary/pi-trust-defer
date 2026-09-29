@@ -13,9 +13,17 @@ _Auto-decline project trust at startup so you're immediately interactive. Use `/
 
 ---
 
+## Pi 0.99 compatibility (1.2.13)
+
+Tested with Pi **0.99.0**. Host-provided Pi packages and TypeBox are peers (`*`), not bundled runtime dependencies; development uses exact Pi 0.99.0 pins and host-compatible TypeBox where needed.
+
+The reload hook is idempotent and uses each SettingsManager's own project and agent-directory paths. It no longer applies one session's cwd to another; in-memory/custom-storage managers keep their host's trust policy.
+
+Run `bun run test:host` for the offline real-host load, native codemode/nested-call, module-identity and reload checks. Set `PI99_HOST_PACKAGE` to an installed Pi package directory to test that host explicitly; add `PI99_HOST_ENTRY=bundle` to check the bundled CLI runtime's constructors.
+
 ## The Problem
 
-When you start pi in a project that contains `AGENTS.md`, `CLAUDE.md`, a `.pi/` directory, or other project-local inputs, pi shows a trust prompt **before** you can interact:
+When Pi finds protected project resources (such as `.pi/settings.json`, extensions or skills), unresolved trust can block interactive startup. Context files such as `AGENTS.md` and `CLAUDE.md` load regardless of project trust; a bare `.pi/` directory does not trigger trust.
 
 ```
  Trust project folder?
@@ -115,12 +123,9 @@ pi install https://github.com/monotykamary/pi-trust-defer
 cp trust-defer.ts ~/.pi/agent/extensions/
 ```
 
-### Option 3: Project-Local Installation
+### Project-local loading
 
-```bash
-mkdir -p .pi/extensions
-cp trust-defer.ts .pi/extensions/
-```
+Project extensions load only after trust is resolved, so they cannot defer the startup trust prompt. Use a personal install or explicit `-e` instead.
 
 ### Option 4: Quick Test
 
@@ -153,7 +158,7 @@ Pass `--approve` / `-a` to trust the project in non-interactive modes, just like
 | `project_trust` handler | Intercepts the trust event, returns `{ trusted: "no" }` |
 | `SettingsManager.prototype.reload` patch | On reload, if `projectTrusted` is `false` but trust.json says `true`, flips the flag |
 
-The extension uses the `project_trust` event and `ctx.isProjectTrusted()` — supported extension APIs, not hacks.
+The extension uses the public `project_trust` event. The reload hook additionally relies on Pi 0.99's per-instance `settingsPaths` layout; managers without file paths are deliberately left unchanged.
 
 The `SettingsManager` prototype patch is the only "internal" touch. It's needed because the built-in `/reload` preserves `projectTrusted=false` from the initial session, and the extension API doesn't expose a way to flip it. The patch is minimal: on each `reload()`, if `isProjectTrusted()` is `false` and the trust store says `true`, call `setProjectTrusted(true)`. Since `/reload` is user-initiated and infrequent, the trust store read is fine — a single `proper-lockfile` acquisition, not a hot loop.
 
