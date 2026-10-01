@@ -13,13 +13,20 @@ _Auto-decline project trust at startup so you're immediately interactive. Use `/
 
 ---
 
+## Pi 1.0 compatibility (1.2.14)
+
+Tested against Pi **1.0.0** with exact SDK development pins and wildcard host peers.
+Host probes verify automatic decline and manager-local trust promotion without granting sibling sessions trust. The idempotent reload hook remains process-scoped so trust promotion survives session replacement.
+
+Run `bun run test:host` for the offline real-host regression. Set `PI1_HOST_PACKAGE` to an installed Pi package directory and `PI1_HOST_ENTRY=bundle` to test its bundled CLI runtime.
+
 ## Pi 0.99 compatibility (1.2.13)
 
 Tested with Pi **0.99.0**. Host-provided Pi packages and TypeBox are peers (`*`), not bundled runtime dependencies; development uses exact Pi 0.99.0 pins and host-compatible TypeBox where needed.
 
 The reload hook is idempotent and uses each SettingsManager's own project and agent-directory paths. It no longer applies one session's cwd to another; in-memory/custom-storage managers keep their host's trust policy.
 
-Run `bun run test:host` for the offline real-host load, native codemode/nested-call, module-identity and reload checks. Set `PI99_HOST_PACKAGE` to an installed Pi package directory to test that host explicitly; add `PI99_HOST_ENTRY=bundle` to check the bundled CLI runtime's constructors.
+Run `bun run test:host` for the offline real-host load, native codemode/nested-call, module-identity and reload checks. Set `PI1_HOST_PACKAGE` to an installed Pi package directory to test that host explicitly; add `PI1_HOST_ENTRY=bundle` to check the bundled CLI runtime's constructors.
 
 ## The Problem
 

@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { ProjectTrustStore, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { installTrustReloadHook } from "../../trust-defer.js";
 
-describe("Pi 0.99 manager-local trust reload", () => {
+describe("Pi 1.0 manager-local trust reload", () => {
   it("is idempotent and never grants a sibling or in-memory session's trust", async () => {
-    const root = mkdtempSync(join(tmpdir(), "trust99-"));
+    const root = mkdtempSync(join(tmpdir(), "trust1-"));
     try {
       const agent = join(root, "agent");
       const a = join(root, "a"), b = join(root, "b");

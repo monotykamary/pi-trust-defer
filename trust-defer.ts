@@ -5,7 +5,7 @@ import { ProjectTrustStore, SettingsManager } from "@earendil-works/pi-coding-ag
 
 const PATCH = Symbol.for("pi-trust-defer.reload.v2");
 
-/** Pi 0.99 reload preserves trust; use the manager's own file paths, never a
+/** Pi 1.0 reload preserves trust; use the manager's own file paths, never a
  * process-global cwd. In-memory/custom-storage SDK managers have no paths and
  * must keep their host's explicit policy. Installation is reload-idempotent. */
 export function installTrustReloadHook(): void {
