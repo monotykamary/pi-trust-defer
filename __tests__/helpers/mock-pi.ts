@@ -41,6 +41,7 @@ export function createMockPi(): MockPi {
     registerShortcut: noop as any,
     registerFlag: noop as any,
     getFlag: noop as any,
+    registerToolRenderer: noop as any,
     registerMessageRenderer: noop as any,
     registerMarkdownTransformer: noop as any,
     registerEntryRenderer: noop as any,
